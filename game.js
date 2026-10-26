@@ -12,7 +12,7 @@ const COLORS = [
   '#81c784', // S - green
   '#e57373', // Z - red
   '#7986cb', // J - indigo
-  '#ffb74d', // L - orange
+  '#90caf9', // L - pale blue
 ];
 
 const PIECES = [
