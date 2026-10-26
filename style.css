@@ -15,6 +15,24 @@ body {
   user-select: none;
 }
 
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Título estilo Slayer: gótico, rojo sangre */
+.title {
+  font-family: 'Old English Text MT', 'UnifrakturCook', 'Blackletter', Impact, fantasy;
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-align: center;
+  color: #e00000;
+  text-shadow: 0 0 8px rgba(224, 0, 0, 0.6), 2px 2px 0 #4a0000, 0 4px 12px #000;
+}
+
 .wrapper {
   position: relative;
 }
