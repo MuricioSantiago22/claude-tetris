@@ -14,7 +14,10 @@ const COLORS = [
   '#7986cb', // J - indigo
   '#90caf9', // L - pale blue
   '#c0c0c0', // R - silver (anillo)
-  '#f5f5f5', // W - comodín (Tinte)
+  '#ff9800', // + - naranja (cruz)
+  'rgb',     // single - degradado rojo/verde/azul (recompensa)
+  '#78909c', // U - metálico
+  '#ff00ff', // Y - magenta
 ];
 
 const PIECES = [
@@ -27,7 +30,13 @@ const PIECES = [
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
   [[8,8,8],[8,0,8],[8,8,8]],                  // R (anillo)
+  [[0,9,0],[9,9,9],[0,9,0]],                  // + (cruz)
+  [[10]],                                      // single (recompensa)
+  [[11,0,11],[11,11,11],[0,0,0]],             // U
+  [[12,0,12],[0,12,0],[0,12,0]],              // Y
 ];
+
+const SINGLE = 10; // solo aparece como recompensa tras un Tetris
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
@@ -67,6 +76,7 @@ function applyTheme(theme) {
   gridColor = getComputedStyle(document.documentElement).getPropertyValue('--grid').trim() || gridColor;
 }
 
+let rewardPending = false;
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let powerup, powerTimer, freezeLeft, aiming;
 
@@ -74,8 +84,11 @@ function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
-function randomPiece() {
-  const type = Math.floor(Math.random() * (PIECES.length - 1)) + 1;
+function randomPiece(forced) {
+  let type = forced;
+  if (!type) {
+    do { type = Math.floor(Math.random() * (PIECES.length - 1)) + 1; } while (type === SINGLE);
+  }
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
 }
@@ -131,6 +144,7 @@ function clearLines() {
       r++;
     }
   }
+  if (cleared === 4) rewardPending = true;
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
@@ -248,8 +262,13 @@ function lockPiece() {
 }
 
 function spawn() {
-  current = next;
-  next = randomPiece();
+  if (rewardPending) {
+    rewardPending = false;
+    current = randomPiece(SINGLE);
+  } else {
+    current = next;
+    next = randomPiece();
+  }
   if (collide(current.shape, current.x, current.y)) {
     endGame();
   }
@@ -264,7 +283,13 @@ function updateHUD() {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
+  let color = COLORS[colorIndex];
+  if (color === 'rgb') {
+    color = context.createLinearGradient(x * size, 0, (x + 1) * size, 0);
+    color.addColorStop(0, '#ff0000');
+    color.addColorStop(0.5, '#00ff00');
+    color.addColorStop(1, '#0000ff');
+  }
   context.globalAlpha = alpha ?? 1;
   context.fillStyle = color;
   context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
@@ -391,6 +416,7 @@ function init() {
   level = 1;
   paused = false;
   gameOver = false;
+  rewardPending = false;
   dropInterval = 1000;
   dropAccum = 0;
   lastTime = performance.now();
