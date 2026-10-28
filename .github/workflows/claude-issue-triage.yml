@@ -40,8 +40,14 @@ jobs:
             4. Asigna los labels apropiados con `gh issue edit ${{ github.event.issue.number }} --add-label "a,b"`.
                Usa SOLO labels que ya existan. Si el issue ya tiene labels puestos por una persona, no los quites.
             5. Publica el diagnostico con
-               `gh issue comment ${{ github.event.issue.number }} --edit-last --create-if-none --body "..."`
+               `gh issue comment ${{ github.event.issue.number }} --edit-last --create-if-none --body-file -` (cuerpo por heredoc)
                (asi se actualiza el comentario anterior si el issue fue editado, en vez de duplicarlo).
+
+            El comentario DEBE estar en Markdown valido para GitHub (GitHub Flavored Markdown):
+            usa encabezados `##`, listas con `-`, negritas con `**`, codigo en linea con
+            comillas invertidas y bloques de codigo con triple comilla invertida e indicando el lenguaje.
+            Usa saltos de linea reales (no escribas `\n` literal): pasa el cuerpo con un heredoc,
+            por ejemplo `gh issue comment N --edit-last --create-if-none --body-file - <<'EOF'`.
 
             Formato del comentario (en espanol, Markdown):
             ## Diagnostico automatico
