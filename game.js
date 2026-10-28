@@ -40,6 +40,17 @@ const SINGLE = 10; // solo aparece como recompensa tras un Tetris
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
+const WILD = 9;
+const POWERUP_INTERVAL = 25000; // ms de juego entre power-ups
+const FREEZE_TIME = 5000;
+const POWERUPS = {
+  bomb:      { name: 'Bomba',    desc: 'destruye 3×3' },
+  lightning: { name: 'Rayo',     desc: 'fila/columna a elección' },
+  tint:      { name: 'Tinte',    desc: 'color → comodín' },
+  gravity:   { name: 'Gravedad', desc: 'compacta huecos' },
+  freeze:    { name: 'Congelar', desc: 'pausa la caída 5s' },
+};
+
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
@@ -52,6 +63,7 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeToggle = document.getElementById('theme-toggle');
+const powerupEl = document.getElementById('powerup');
 
 let gridColor = '#22222e';
 
@@ -66,6 +78,7 @@ function applyTheme(theme) {
 
 let rewardPending = false;
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let powerup, powerTimer, freezeLeft, aiming;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -139,6 +152,84 @@ function clearLines() {
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
+}
+
+function updatePowerupHUD() {
+  let text;
+  if (aiming) {
+    text = `Rayo: ${aiming.axis === 'row' ? 'FILA' : 'COLUMNA'} — flechas mover, R cambiar, Enter disparar, Esc cancelar`;
+  } else if (powerup) {
+    text = `${POWERUPS[powerup].name} (${POWERUPS[powerup].desc}) — Enter para usar`;
+  } else {
+    text = `Próximo en ${Math.ceil((POWERUP_INTERVAL - powerTimer) / 1000)}s`;
+  }
+  if (freezeLeft > 0) text += ` · Congelado ${Math.ceil(freezeLeft / 1000)}s`;
+  powerupEl.textContent = text;
+}
+
+function activatePowerup() {
+  if (!powerup || aiming) return;
+  const type = powerup;
+  if (type === 'lightning') {
+    aiming = { axis: 'row', row: ROWS - 1, col: Math.floor(COLS / 2) };
+    updatePowerupHUD();
+    return;
+  }
+  powerup = null;
+  powerTimer = 0;
+  if (type === 'bomb') useBomb();
+  else if (type === 'tint') useTint();
+  else if (type === 'gravity') useGravity();
+  else if (type === 'freeze') freezeLeft = FREEZE_TIME;
+  updatePowerupHUD();
+}
+
+// Explota en el bloque más alto de la columna central de la pieza actual.
+function useBomb() {
+  const cx = Math.min(COLS - 1, Math.max(0, current.x + Math.floor(current.shape[0].length / 2)));
+  let cy = ROWS - 1;
+  for (let r = 0; r < ROWS; r++) {
+    if (board[r][cx]) { cy = r; break; }
+  }
+  for (let r = cy - 1; r <= cy + 1; r++)
+    for (let c = cx - 1; c <= cx + 1; c++)
+      if (r >= 0 && r < ROWS && c >= 0 && c < COLS) board[r][c] = 0;
+}
+
+function fireLightning() {
+  if (aiming.axis === 'row') board[aiming.row].fill(0);
+  else for (let r = 0; r < ROWS; r++) board[r][aiming.col] = 0;
+  aiming = null;
+  powerup = null;
+  powerTimer = 0;
+}
+
+// Convierte en comodines todos los bloques del color más abundante.
+function useTint() {
+  const counts = {};
+  for (const row of board)
+    for (const v of row)
+      if (v && v !== WILD) counts[v] = (counts[v] || 0) + 1;
+  let best = 0;
+  for (const k in counts) if (!best || counts[k] > counts[best]) best = Number(k);
+  if (!best) return;
+  for (const row of board)
+    for (let c = 0; c < COLS; c++)
+      if (row[c] === best) row[c] = WILD;
+}
+
+function useGravity() {
+  for (let c = 0; c < COLS; c++) {
+    let write = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r][c]) {
+        const v = board[r][c];
+        board[r][c] = 0;
+        board[write--][c] = v;
+      }
+    }
+  }
+  clearLines();
 }
 
 function ghostY() {
@@ -234,6 +325,13 @@ function draw() {
     for (let c = 0; c < COLS; c++)
       drawBlock(ctx, c, r, board[r][c], BLOCK);
 
+  // objetivo del rayo
+  if (aiming) {
+    ctx.fillStyle = 'rgba(255, 235, 59, 0.35)';
+    if (aiming.axis === 'row') ctx.fillRect(0, aiming.row * BLOCK, COLS * BLOCK, BLOCK);
+    else ctx.fillRect(aiming.col * BLOCK, 0, BLOCK, ROWS * BLOCK);
+  }
+
   // ghost
   const gy = ghostY();
   for (let r = 0; r < current.shape.length; r++)
@@ -283,7 +381,22 @@ function togglePause() {
 function loop(ts) {
   const dt = ts - lastTime;
   lastTime = ts;
-  dropAccum += dt;
+  if (!aiming) {
+    if (freezeLeft > 0) {
+      freezeLeft = Math.max(0, freezeLeft - dt);
+    } else {
+      dropAccum += dt;
+    }
+    if (!powerup) {
+      powerTimer += dt;
+      if (powerTimer >= POWERUP_INTERVAL) {
+        const types = Object.keys(POWERUPS);
+        powerup = types[Math.floor(Math.random() * types.length)];
+        powerTimer = 0;
+      }
+    }
+  }
+  updatePowerupHUD();
   if (dropAccum >= dropInterval) {
     dropAccum = 0;
     if (!collide(current.shape, current.x, current.y + 1)) {
@@ -307,6 +420,10 @@ function init() {
   dropInterval = 1000;
   dropAccum = 0;
   lastTime = performance.now();
+  powerup = null;
+  powerTimer = 0;
+  freezeLeft = 0;
+  aiming = null;
   next = randomPiece();
   spawn();
   updateHUD();
@@ -318,7 +435,24 @@ function init() {
 document.addEventListener('keydown', e => {
   if (e.code === 'KeyP') { togglePause(); return; }
   if (paused || gameOver) return;
+  if (aiming) {
+    e.preventDefault();
+    switch (e.code) {
+      case 'ArrowLeft':  aiming.col = Math.max(0, aiming.col - 1); break;
+      case 'ArrowRight': aiming.col = Math.min(COLS - 1, aiming.col + 1); break;
+      case 'ArrowUp':    aiming.row = Math.max(0, aiming.row - 1); break;
+      case 'ArrowDown':  aiming.row = Math.min(ROWS - 1, aiming.row + 1); break;
+      case 'KeyR':       aiming.axis = aiming.axis === 'row' ? 'col' : 'row'; break;
+      case 'Enter':      fireLightning(); break;
+      case 'Escape':     aiming = null; break;
+    }
+    updatePowerupHUD();
+    return;
+  }
   switch (e.code) {
+    case 'Enter':
+      activatePowerup();
+      break;
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
       break;

@@ -129,6 +129,14 @@ body {
   border-radius: 4px;
 }
 
+/* ---- Power-up ---- */
+.powerup {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent);
+  min-height: 3.4em;
+}
+
 /* ---- Toggle de tema ---- */
 .theme-toggle {
   align-self: flex-start;

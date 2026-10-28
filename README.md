@@ -42,6 +42,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Vista previa** de la siguiente pieza.
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
+- **Power-ups aleatorios**: cada 25 s de juego aparece uno (Bomba 3×3, Rayo fila/columna elegida por el jugador, Tinte, Gravedad o Congelar 5 s) y se activa con `Enter`.
 - **Pausa** y **Game Over** con opción de reinicio.
 
 ---
@@ -85,6 +86,7 @@ Después abre `http://localhost:8000` en el navegador.
 | `↑` o `X` | Rotar la pieza en sentido horario |
 | `↓`       | Soft drop (bajar más rápido)      |
 | `Espacio` | Hard drop (caída instantánea)     |
+| `Enter`   | Usar power-up (Rayo: flechas para apuntar, `R` fila/columna, `Enter` disparar, `Esc` cancelar) |
 | `P`       | Pausar / reanudar                 |
 
 ---
@@ -159,7 +161,7 @@ Cuando una pieza recién generada ya colisiona al aparecer (`spawn`), se dispara
 03-tetris/
 ├── index.html      # Estructura del DOM y canvas
 ├── style.css       # Estilos del juego (dark theme)
-├── game.js         # Toda la lógica del Tetris (~300 líneas)
+├── game.js         # Toda la lógica del Tetris (~470 líneas)
 └── README.md
 ```
 
