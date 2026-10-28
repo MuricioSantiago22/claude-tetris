@@ -14,6 +14,7 @@ const COLORS = [
   '#7986cb', // J - indigo
   '#90caf9', // L - pale blue
   '#c0c0c0', // R - silver (anillo)
+  '#ff9800', // C - orange (cruz)
 ];
 
 const PIECES = [
@@ -26,6 +27,7 @@ const PIECES = [
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
   [[8,8,8],[8,0,8],[8,8,8]],                  // R (anillo)
+  [[0,9,0],[9,9,9],[0,9,0]],                  // C (cruz)
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
