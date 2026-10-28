@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tetris</title>
+  <script>
+    try {
+      document.documentElement.dataset.theme =
+        localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -30,6 +36,11 @@
         <div class="panel-section">
           <span class="label">NEXT</span>
           <canvas id="next-canvas" width="120" height="120"></canvas>
+        </div>
+
+        <div class="panel-section">
+          <span class="label">TEMA</span>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Cambiar a modo claro">☀ Claro</button>
         </div>
 
         <div class="panel-section controls">
