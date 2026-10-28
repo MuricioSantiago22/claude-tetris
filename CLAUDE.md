@@ -15,7 +15,7 @@ Open `index.html` directly, or serve statically: `python3 -m http.server 8000` t
 Three files, loaded by `index.html` (`style.css` + `<script src="game.js">`). All logic lives in `game.js`, a single script using module-level globals (`board`, `current`, `next`, `score`, `lines`, `level`, ...), declared together and reset in `init()`.
 
 - `game.js` looks up DOM elements by id at load: `board`, `next-canvas`, `score`, `lines`, `level`, `overlay`, `overlay-title`, `overlay-score`, `restart-btn`. Renaming any of these in `index.html` breaks the game.
-- Board is a `ROWS × COLS` matrix; cell is `0` or a color/piece index 1–7. The same index keys `COLORS` and `PIECES` (index 0 is `null`), and piece shape matrices store that index in their filled cells.
+- Board is a `ROWS × COLS` matrix; cell is `0` or a color/piece index 1–8. The same index keys `COLORS` and `PIECES` (index 0 is `null`), and piece shape matrices store that index in their filled cells.
 - Game loop (`loop`) runs on `requestAnimationFrame`, accumulates `dropAccum`, and gravity-drops when it exceeds `dropInterval`. Pause/game over use `cancelAnimationFrame(animId)`; `init()` is also the restart handler.
 - Lock flow: `lockPiece()` → `merge()` → `clearLines()` (updates score/level/`dropInterval`) → `spawn()`. `spawn()` calls `endGame()` if the new piece collides.
 - Rotation (`tryRotate`) is rotate-clockwise plus simple horizontal kicks `[0,-1,1,-2,2]` only. No SRS tables, no 7-bag (`randomPiece` is uniform random).
