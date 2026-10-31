@@ -41,6 +41,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Pieza fantasma** (_ghost piece_): muestra dónde aterrizará la pieza actual.
 - **Vista previa** de la siguiente pieza.
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
+- **Combos y bonus**: combo por limpiezas en turnos consecutivos (+50 × combo × nivel), **T-spin** (400 / 800 / 1200 / 1600 × nivel), **Back-to-Back** (×1,5 en Tetris o T-spin con líneas consecutivos) y **Perfect Clear** (+2000 × nivel). Incluye texto flotante, destello y sonidos (Web Audio); `M` silencia.
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Power-ups aleatorios**: cada 25 s de juego aparece uno (Bomba 3×3, Rayo fila/columna elegida por el jugador, Tinte, Gravedad o Congelar 5 s) y se activa con `Enter`.
 - **Pausa** y **Game Over** con opción de reinicio.
@@ -88,6 +89,7 @@ Después abre `http://localhost:8000` en el navegador.
 | `Espacio` | Hard drop (caída instantánea)     |
 | `Enter`   | Usar power-up (Rayo: flechas para apuntar, `R` fila/columna, `Enter` disparar, `Esc` cancelar) |
 | `P`       | Pausar / reanudar                 |
+| `M`       | Silenciar / activar sonido        |
 
 ---
 
