@@ -44,6 +44,19 @@
         </div>
 
         <div class="panel-section">
+          <span class="label">MODO</span>
+          <select id="mode-select" aria-label="Modo de juego">
+            <option value="">Normal</option>
+            <option value="sprint">Desafío: 40 líneas en 2 min</option>
+            <option value="garbage">Desafío: basura cada 10s</option>
+            <option value="preset">Desafío: tablero pre-colocado</option>
+            <option value="invisible">Desafío: piezas invisibles</option>
+            <option value="reverse">Desafío: rotación inversa</option>
+          </select>
+          <span class="powerup" id="challenge"></span>
+        </div>
+
+        <div class="panel-section">
           <span class="label">TEMA</span>
           <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Cambiar a modo claro">☀ Claro</button>
         </div>
