@@ -88,6 +88,7 @@ Después abre `http://localhost:8000` en el navegador.
 | `↑` o `X` | Rotar la pieza en sentido horario |
 | `↓`       | Soft drop (bajar más rápido)      |
 | `Espacio` | Hard drop (caída instantánea)     |
+| `C` / `Shift` | Reservar pieza (hold): guarda la actual o la intercambia con la guardada; una vez por pieza (el slot se atenúa mientras está bloqueado); la pieza single de recompensa no se puede guardar |
 | `Enter`   | Usar power-up (Rayo: flechas para apuntar, `R` fila/columna, `Enter` disparar, `Esc` cancelar) |
 | `P`       | Pausar / reanudar                 |
 | `M`       | Silenciar / activar sonido        |
