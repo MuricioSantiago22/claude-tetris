@@ -51,6 +51,18 @@ const POWERUPS = {
   freeze:    { name: 'Congelar', desc: 'pausa la caída 5s' },
 };
 
+const ENERGY_MAX = 100;
+const ENERGY_PER_LINE = 20; // un T-spin suma una línea extra de energía
+const SLOW_TIME = 10000;
+const SLOW_FACTOR = 2;
+const PEEK_COUNT = 5;
+const ABILITIES = [
+  { key: '1', name: 'Ver siguientes 5',  desc: 'muestra 5 piezas durante 5 piezas' },
+  { key: '2', name: 'Cambiar pieza',     desc: 'reemplaza la actual por otra al azar' },
+  { key: '3', name: 'Ralentizar 10s',    desc: 'caída a la mitad de velocidad' },
+  { key: '4', name: 'Deshacer',          desc: 'revierte la última colocación' },
+];
+
 const CHALLENGES = {
   sprint:    { title: 'Limpia 40 líneas en 2 minutos', goalLines: 40, timeLimit: 120000 },
   garbage:   { title: 'Sobrevive 60s con basura cada 10s', survive: true, timeLimit: 60000, garbageEvery: 10000 },
@@ -65,6 +77,10 @@ const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
 const holdCanvas = document.getElementById('hold-canvas');
 const holdCtx = holdCanvas.getContext('2d');
+const peekCanvas = document.getElementById('peek-canvas');
+const peekCtx = peekCanvas.getContext('2d');
+const energyFill = document.getElementById('energy-fill');
+const energyText = document.getElementById('energy-text');
 const scoreEl = document.getElementById('score');
 const linesEl = document.getElementById('lines');
 const levelEl = document.getElementById('level');
@@ -92,6 +108,7 @@ let rewardPending = false;
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let hold, holdUsed; // hold: tipo de pieza guardada (o null); holdUsed: bloqueado hasta asentar la pieza
 let powerup, powerTimer, freezeLeft, aiming;
+let energy, abilityMenu, slowLeft, peekLeft, queue, undoSnap, abilityMsg;
 let challenge, challengeTime, garbageTimer, startLines;
 let combo, backToBack, lastMoveRotate, effects, flash;
 let muted = false;
@@ -132,11 +149,22 @@ function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
+function randomType() {
+  let type;
+  do { type = Math.floor(Math.random() * (PIECES.length - 1)) + 1; } while (type === SINGLE);
+  return type;
+}
+
+// Cola de piezas futuras: alimenta `next` y permite la habilidad "ver siguientes".
+function takeQueue() {
+  const type = queue.shift();
+  queue.push(randomType());
+  if (peekLeft > 0) peekLeft--;
+  return type;
+}
+
 function randomPiece(forced) {
-  let type = forced;
-  if (!type) {
-    do { type = Math.floor(Math.random() * (PIECES.length - 1)) + 1; } while (type === SINGLE);
-  }
+  const type = forced || randomType();
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
 }
@@ -230,6 +258,7 @@ function clearLines(tspin = false) {
   }
   playChain(difficult ? 4 : Math.max(combo + 1, cleared));
 
+  energy = Math.min(ENERGY_MAX, energy + cleared * ENERGY_PER_LINE + (tspin ? ENERGY_PER_LINE : 0));
   level = Math.floor(lines / 10) + 1;
   dropInterval = Math.max(100, 1000 - (level - 1) * 90);
   updateHUD();
@@ -258,6 +287,7 @@ function updatePowerupHUD() {
     text = `Próximo en ${Math.ceil((POWERUP_INTERVAL - powerTimer) / 1000)}s`;
   }
   if (freezeLeft > 0) text += ` · Congelado ${Math.ceil(freezeLeft / 1000)}s`;
+  if (slowLeft > 0) text += ` · Lento ${Math.ceil(slowLeft / 1000)}s`;
   powerupEl.textContent = text;
 }
 
@@ -389,6 +419,10 @@ function softDrop() {
 
 function lockPiece() {
   const tspin = isTSpin();
+  undoSnap = {
+    board: board.map(r => [...r]), score, lines, level, dropInterval, combo, backToBack,
+    rewardPending, hold, holdUsed, type: current.type, nextType: next.type, queue: [...queue],
+  };
   merge();
   const cleared = clearLines(tspin);
   if (!cleared) {
@@ -440,7 +474,69 @@ function spawn() {
   drawHold();
 }
 
+function openAbilityMenu() {
+  if (energy < ENERGY_MAX || abilityMenu || aiming) return;
+  abilityMenu = true;
+  abilityMsg = '';
+}
+
+function useAbility(i) {
+  let ok = false;
+  if (i === 0) {
+    peekLeft = PEEK_COUNT;
+    ok = true;
+  } else if (i === 1) {
+    ok = swapCurrent();
+  } else if (i === 2) {
+    slowLeft = SLOW_TIME;
+    ok = true;
+  } else if (i === 3) {
+    ok = undoPlacement();
+  }
+  if (!ok) { abilityMsg = 'No se puede usar ahora'; return; }
+  energy = 0;
+  abilityMenu = false;
+  abilityMsg = '';
+  updateHUD();
+  drawNext();
+}
+
+function swapCurrent() {
+  if (current.type === SINGLE) return false;
+  const types = [];
+  for (let t = 1; t < PIECES.length; t++) if (t !== SINGLE && t !== current.type) types.push(t);
+  for (let n = types.length; n > 0; n--) {
+    const t = types.splice(Math.floor(Math.random() * n), 1)[0];
+    const p = randomPiece(t);
+    p.y = current.y;
+    p.x = Math.min(current.x, COLS - p.shape[0].length);
+    if (!collide(p.shape, p.x, p.y)) { current = p; lastMoveRotate = false; return true; }
+  }
+  return false;
+}
+
+function undoPlacement() {
+  if (!undoSnap) return false;
+  const s = undoSnap;
+  undoSnap = null;
+  board = s.board;
+  score = s.score; lines = s.lines; level = s.level; dropInterval = s.dropInterval;
+  combo = s.combo; backToBack = s.backToBack; rewardPending = s.rewardPending;
+  hold = s.hold; holdUsed = s.holdUsed;
+  queue = s.queue;
+  current = randomPiece(s.type);
+  next = randomPiece(s.nextType);
+  dropAccum = 0;
+  lastMoveRotate = false;
+  drawHold();
+  return true;
+}
+
 function updateHUD() {
+  const pct = Math.round(energy / ENERGY_MAX * 100);
+  energyFill.style.width = pct + '%';
+  energyFill.classList.toggle('full', energy >= ENERGY_MAX);
+  energyText.textContent = energy >= ENERGY_MAX ? '¡Lista! Pulsa E' : pct + '%';
   scoreEl.textContent = score.toLocaleString();
   linesEl.textContent = lines;
   levelEl.textContent = level;
@@ -510,6 +606,27 @@ function draw() {
       drawBlock(ctx, current.x + c, current.y + r, current.shape[r][c], BLOCK);
 
   drawEffects();
+  if (abilityMenu) drawAbilityMenu();
+}
+
+function drawAbilityMenu() {
+  ctx.fillStyle = 'rgba(0,0,0,0.8)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd54f';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('HABILIDAD', canvas.width / 2, 150);
+  ABILITIES.forEach((a, i) => {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(`${a.key}. ${a.name}`, canvas.width / 2, 200 + i * 55);
+    ctx.fillStyle = '#aaa';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(a.desc, canvas.width / 2, 220 + i * 55);
+  });
+  ctx.fillStyle = abilityMsg ? '#e57373' : '#aaa';
+  ctx.font = '13px sans-serif';
+  ctx.fillText(abilityMsg || 'Esc para cancelar', canvas.width / 2, 450);
 }
 
 function drawEffects() {
@@ -542,6 +659,22 @@ function drawNext() {
   for (let r = 0; r < shape.length; r++)
     for (let c = 0; c < shape[r].length; c++)
       drawBlock(nextCtx, offX + c, offY + r, shape[r][c], NB);
+  drawPeek();
+}
+
+// Las siguientes 5 piezas (tras `next`), mientras la habilidad esté activa.
+function drawPeek() {
+  const NB = 15;
+  peekCtx.clearRect(0, 0, peekCanvas.width, peekCanvas.height);
+  if (peekLeft <= 0) return;
+  queue.slice(0, PEEK_COUNT).forEach((type, i) => {
+    const shape = PIECES[type];
+    const offX = Math.floor((4 - shape[0].length) / 2);
+    const offY = Math.floor((4 - shape.length) / 2) + i * 4;
+    for (let r = 0; r < shape.length; r++)
+      for (let c = 0; c < shape[r].length; c++)
+        drawBlock(peekCtx, offX + c, offY + r, shape[r][c], NB);
+  });
 }
 
 function drawHold() {
@@ -581,7 +714,8 @@ function togglePause() {
 function loop(ts) {
   const dt = ts - lastTime;
   lastTime = ts;
-  if (!aiming) {
+  if (!aiming && !abilityMenu) {
+    if (slowLeft > 0) slowLeft = Math.max(0, slowLeft - dt);
     if (freezeLeft > 0) {
       freezeLeft = Math.max(0, freezeLeft - dt);
     } else {
@@ -612,7 +746,7 @@ function loop(ts) {
   for (const e of effects) e.life -= dt;
   effects = effects.filter(e => e.life > 0);
   flash = Math.max(0, flash - dt);
-  if (dropAccum >= dropInterval) {
+  if (dropAccum >= dropInterval * (slowLeft > 0 ? SLOW_FACTOR : 1)) {
     dropAccum = 0;
     if (!collide(current.shape, current.x, current.y + 1)) {
       current.y++;
@@ -645,6 +779,13 @@ function init() {
   powerTimer = 0;
   freezeLeft = 0;
   aiming = null;
+  energy = 0;
+  abilityMenu = false;
+  slowLeft = 0;
+  peekLeft = 0;
+  undoSnap = null;
+  abilityMsg = '';
+  queue = Array.from({ length: PEEK_COUNT }, randomType);
   combo = -1;
   backToBack = false;
   lastMoveRotate = false;
@@ -665,6 +806,12 @@ document.addEventListener('keydown', e => {
   if (e.code === 'KeyP') { togglePause(); return; }
   if (e.code === 'KeyM') { muted = !muted; return; }
   if (paused || gameOver) return;
+  if (abilityMenu) {
+    e.preventDefault();
+    if (e.code === 'Escape' || e.code === 'KeyE') abilityMenu = false;
+    else if (/^(Digit|Numpad)[1-4]$/.test(e.code)) useAbility(Number(e.code.slice(-1)) - 1);
+    return;
+  }
   if (aiming) {
     e.preventDefault();
     switch (e.code) {
@@ -682,6 +829,9 @@ document.addEventListener('keydown', e => {
   switch (e.code) {
     case 'Enter':
       activatePowerup();
+      break;
+    case 'KeyE':
+      openAbilityMenu();
       break;
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) { current.x--; lastMoveRotate = false; }
