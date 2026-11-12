@@ -63,6 +63,8 @@ const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
+const holdCanvas = document.getElementById('hold-canvas');
+const holdCtx = holdCanvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const linesEl = document.getElementById('lines');
 const levelEl = document.getElementById('level');
@@ -88,6 +90,7 @@ function applyTheme(theme) {
 
 let rewardPending = false;
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let hold, holdUsed; // hold: tipo de pieza guardada (o null); holdUsed: bloqueado hasta asentar la pieza
 let powerup, powerTimer, freezeLeft, aiming;
 let challenge, challengeTime, garbageTimer, startLines;
 let combo, backToBack, lastMoveRotate, effects, flash;
@@ -397,7 +400,29 @@ function lockPiece() {
       updateHUD();
     }
   }
+  holdUsed = false;
   spawn();
+}
+
+// Guarda la pieza actual y toma la reservada (o la siguiente si no hay). Una vez por pieza.
+function holdPiece() {
+  if (holdUsed || current.type === SINGLE) return; // la pieza de recompensa no se puede guardar
+  const saved = hold;
+  hold = current.type;
+  if (saved) {
+    current = randomPiece(saved);
+  } else if (rewardPending) {
+    rewardPending = false;
+    current = randomPiece(SINGLE);
+  } else {
+    current = next;
+    next = randomPiece();
+  }
+  holdUsed = true;
+  lastMoveRotate = false;
+  if (collide(current.shape, current.x, current.y)) endGame();
+  drawHold();
+  drawNext();
 }
 
 function spawn() {
@@ -412,6 +437,7 @@ function spawn() {
     endGame();
   }
   drawNext();
+  drawHold();
 }
 
 function updateHUD() {
@@ -518,6 +544,18 @@ function drawNext() {
       drawBlock(nextCtx, offX + c, offY + r, shape[r][c], NB);
 }
 
+function drawHold() {
+  const NB = 30;
+  holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+  if (!hold) return;
+  const shape = PIECES[hold];
+  const offX = Math.floor((4 - shape[0].length) / 2);
+  const offY = Math.floor((4 - shape.length) / 2);
+  for (let r = 0; r < shape.length; r++)
+    for (let c = 0; c < shape[r].length; c++)
+      drawBlock(holdCtx, offX + c, offY + r, shape[r][c], NB, holdUsed ? 0.3 : 1);
+}
+
 function endGame(title = 'GAME OVER') {
   gameOver = true;
   cancelAnimationFrame(animId);
@@ -612,8 +650,11 @@ function init() {
   lastMoveRotate = false;
   effects = [];
   flash = 0;
+  hold = null;
+  holdUsed = false;
   next = randomPiece();
   spawn();
+  drawHold();
   updateHUD();
   overlay.classList.add('hidden');
   cancelAnimationFrame(animId);
@@ -654,6 +695,11 @@ document.addEventListener('keydown', e => {
     case 'ArrowUp':
     case 'KeyX':
       tryRotate();
+      break;
+    case 'KeyC':
+    case 'ShiftLeft':
+    case 'ShiftRight':
+      holdPiece();
       break;
     case 'Space':
       e.preventDefault();
