@@ -44,6 +44,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Combos y bonus**: combo por limpiezas en turnos consecutivos (+50 × combo × nivel), **T-spin** (400 / 800 / 1200 / 1600 × nivel), **Back-to-Back** (×1,5 en Tetris o T-spin con líneas consecutivos) y **Perfect Clear** (+2000 × nivel). Incluye texto flotante, destello y sonidos (Web Audio); `M` silencia.
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Modo desafío** (selector «MODO» en el panel): 40 líneas en 2 minutos, sobrevivir 60 s con basura subiendo cada 10 s, tablero con bloques fijos pre-colocados, piezas invisibles tras fijarse y rotación inversa en nivel alto. Se muestra el objetivo y el tiempo restante; al terminar aparece «DESAFÍO SUPERADO» o «TIEMPO AGOTADO». Definidos en `CHALLENGES` (`game.js`).
+- **Habilidades cargables**: una barra de energía se llena al limpiar líneas (+20 por línea, +20 extra con T-spin). Al llegar a 100, `E` abre un menú (`1`–`4`, `Esc` cancela) para elegir: ver las siguientes 5 piezas (durante 5 piezas), cambiar la pieza actual por otra al azar, ralentizar la caída 10 s o deshacer la última colocación. Cada uso gasta toda la barra. La reserva (`C`/`Shift`) ya es una mecánica permanente, por eso no está en el menú. Convive con los power-ups.
 - **Power-ups aleatorios**: cada 25 s de juego aparece uno (Bomba 3×3, Rayo fila/columna elegida por el jugador, Tinte, Gravedad o Congelar 5 s) y se activa con `Enter`.
 - **Pausa** y **Game Over** con opción de reinicio.
 
@@ -89,6 +90,7 @@ Después abre `http://localhost:8000` en el navegador.
 | `↓`       | Soft drop (bajar más rápido)      |
 | `Espacio` | Hard drop (caída instantánea)     |
 | `C` / `Shift` | Reservar pieza (hold): guarda la actual o la intercambia con la guardada; una vez por pieza (el slot se atenúa mientras está bloqueado); la pieza single de recompensa no se puede guardar |
+| `E`       | Abrir menú de habilidades (barra llena) |
 | `Enter`   | Usar power-up (Rayo: flechas para apuntar, `R` fila/columna, `Enter` disparar, `Esc` cancelar) |
 | `P`       | Pausar / reanudar                 |
 | `M`       | Silenciar / activar sonido        |
@@ -165,7 +167,7 @@ Cuando una pieza recién generada ya colisiona al aparecer (`spawn`), se dispara
 03-tetris/
 ├── index.html      # Estructura del DOM y canvas
 ├── style.css       # Estilos del juego (dark theme)
-├── game.js         # Toda la lógica del Tetris (~470 líneas)
+├── game.js         # Toda la lógica del Tetris (~600 líneas)
 └── README.md
 ```
 

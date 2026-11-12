@@ -130,6 +130,22 @@ body {
   border-radius: 4px;
 }
 
+/* ---- Energía ---- */
+.energy-bar {
+  width: 120px;
+  height: 12px;
+  border: 1px solid var(--grid, #444);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.energy-fill {
+  width: 0;
+  height: 100%;
+  background: #4dd0e1;
+  transition: width 0.2s;
+}
+.energy-fill.full { background: #ffd54f; }
+
 /* ---- Power-up ---- */
 .powerup {
   font-size: 12px;
