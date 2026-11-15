@@ -60,13 +60,13 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 /* Título estilo Slayer: gótico, rojo sangre */
 .title {
   font-family: 'Old English Text MT', 'UnifrakturCook', 'Blackletter', Impact, fantasy;
-  font-size: 56px;
+  font-size: 36px;
   font-weight: 800;
   letter-spacing: 6px;
   text-align: center;
@@ -78,6 +78,10 @@ body {
   position: relative;
 }
 
+.board-wrap {
+  position: relative;
+}
+
 .game-container {
   display: flex;
   gap: 20px;
@@ -86,6 +90,8 @@ body {
 
 #board {
   display: block;
+  height: min(600px, calc(100vh - 80px));
+  width: auto;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 4px;
@@ -94,11 +100,16 @@ body {
 
 /* ---- Panel lateral ---- */
 .panel {
-  width: 160px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  width: 340px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 12px 16px;
   padding-top: 4px;
+}
+
+.panel-section.controls {
+  grid-column: 1 / -1;
 }
 
 .panel-section {
@@ -136,7 +147,6 @@ body {
   height: 12px;
   border: 1px solid var(--grid, #444);
   border-radius: 6px;
-  overflow: hidden;
 }
 .energy-fill {
   width: 0;
@@ -151,7 +161,7 @@ body {
   font-size: 12px;
   line-height: 1.4;
   color: var(--accent);
-  min-height: 3.4em;
+  min-height: 1.4em;
 }
 
 /* ---- Toggle de tema ---- */
@@ -221,6 +231,8 @@ kbd {
   align-items: center;
 }
 
+#mode-select { width: 100%; max-width: 160px; }
+
 #overlay-title {
   font-size: 28px;
   font-weight: 800;
@@ -250,4 +262,10 @@ kbd {
 
 #restart-btn:hover {
   background: var(--accent-hover);
+}
+
+#peek-canvas {
+  display: block;
+  width: 40px;
+  height: 200px;
 }

@@ -802,7 +802,13 @@ function init() {
   animId = requestAnimationFrame(loop);
 }
 
+const SCROLL_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
+
 document.addEventListener('keydown', e => {
+  const tag = e.target && e.target.tagName;
+  if (tag === 'SELECT' || tag === 'INPUT') return;
+  // Evita que las flechas/espacio hagan scroll de la página
+  if (SCROLL_KEYS.includes(e.code)) e.preventDefault();
   if (e.code === 'KeyP') { togglePause(); return; }
   if (e.code === 'KeyM') { muted = !muted; return; }
   if (paused || gameOver) return;
